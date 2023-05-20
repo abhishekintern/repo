@@ -1,0 +1,3 @@
+[submodule "src/submodules/submodule1"]
+	path = src/submodules/submodule1
+	url = https://github.com/abhishekintern/submodule1
