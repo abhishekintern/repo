@@ -1,13 +1,15 @@
 #!/bin/bash
 
-# GitHub submodule repo addresses without the "https://" prefix
-declare -A remotes=(
-    ["submodule1"]="github.com/abhishekintern/submodule1"
-    ["submodule2"]="github.com/abhishekintern/submodule2"
-)
+# Function to clone or update submodules recursively
+clone_or_update_submodules() {
+    git config submodule.$1.url https://$GITHUB_ACCESS_TOKEN@$2
+    git config submodule.$1.active true
+    git submodule update --init --recursive $1
+    git submodule update --remote $1
+}
 
-# Check if GITHUB_ACCESS_TOKEN environment variable is set
-if [[ -z "$GITHUB_ACCESS_TOKEN" ]]; then
+# Set up GitHub access token
+if [ -z "$GITHUB_ACCESS_TOKEN" ]; then
     echo "Error: GITHUB_ACCESS_TOKEN is empty"
     exit 1
 fi
@@ -15,33 +17,32 @@ fi
 # Stop execution on error - don't proceed if something goes wrong
 set -e
 
-# Get submodule commit
-output=$(git submodule status --recursive) # Get submodule info
+# Clone or update the main repository and its submodules
+git clone --recursive https://$GITHUB_ACCESS_TOKEN@github.com/abhishekintern/submodule1
+cd submodule1
 
-# Extract each submodule commit hash and path
-submodules=$(echo "$output" | sed "s/ -/__/g" | sed "s/ /=/g" | sed "s/-//g" | tr "__" "\n")
+# Get submodule commit and update submodules recursively
+output=$(git submodule status --recursive)
+while IFS= read -r line; do
+    submodule_path=${line#*-} # Remove prefix
+    submodule_commit=${submodule_path% *} # Remove suffix
 
-for submodule in $submodules; do
-    IFS="=" read -r COMMIT SUBMODULE_PATH <<<"$submodule"
+    submodule_path=${submodule_path#* } # Extract submodule path
+    submodule_path=${submodule_path%/} # Remove trailing slash
 
-    SUBMODULE_GITHUB="${remotes[$SUBMODULE_PATH]}"
+    echo "Processing submodule: $submodule_path"
 
-    # Set up an empty temporary work directory
-    rm -rf tmp || true # Remove the tmp folder if it exists
-    mkdir tmp          # Create the tmp folder
-    cd tmp             # Go into the tmp folder
+    cd $submodule_path
 
-    # Checkout the current submodule commit
-    git init                                                                      # Initialize empty repo
-    git remote add "$SUBMODULE_PATH" "https://$GITHUB_ACCESS_TOKEN@$SUBMODULE_GITHUB" # Add origin of the submodule
-    git fetch --depth=1 "$SUBMODULE_PATH" "$COMMIT"                                   # Fetch only the required version
-    git checkout "$COMMIT"                                                          # Checkout the right commit
+    submodule_url=$(git config --get remote.origin.url)
+    submodule_url=${submodule_url#https://}
 
-    # Move the submodule from tmp to the submodule path
-    cd ..                     # Go up one level
-    rm -rf tmp/.git           # Remove .git folder
-    mv tmp/* "$SUBMODULE_PATH"/ # Move the submodule to the submodule path
+    clone_or_update_submodules "$submodule_path" "$submodule_url"
 
-    # Clean up
-    rm -rf tmp # Remove the tmp folder
-done
+    cd ..
+done <<< "$output"
+
+# Clean up
+rm -rf .git
+
+echo "Submodules have been cloned/updated successfully."
