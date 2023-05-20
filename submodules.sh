@@ -23,6 +23,7 @@ cd submodule1
 
 # Get submodule commit and update submodules recursively
 output=$(git submodule status --recursive)
+echo $output
 while IFS= read -r line; do
     submodule_path=${line#*-} # Remove prefix
     submodule_commit=${submodule_path% *} # Remove suffix
