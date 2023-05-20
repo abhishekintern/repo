@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "vercel-install": "pnpm install && ./submodules.sh",
+    "vercel-install": "pnpm install && chmod +x ./submodules.sh",
     "lint": "next lint"
   },
   "dependencies": {
