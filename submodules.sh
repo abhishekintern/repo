@@ -18,8 +18,10 @@ fi
 set -e
 
 # Clone or update the main repository and its submodules
-git clone --recursive https://$GITHUB_ACCESS_TOKEN@github.com/abhishekintern/submodule1
+cd src 
+cd submodules
 cd submodule1
+git clone --recursive https://$GITHUB_ACCESS_TOKEN@github.com/abhishekintern/submodule1
 
 # Get submodule commit and update submodules recursively
 output=$(git submodule status --recursive)
